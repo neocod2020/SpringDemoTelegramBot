@@ -1,30 +1,44 @@
-package com.mycompany.telegramsimplebot.service;
+package com.mycompany.telegramsimplebot.bot;
 
 import com.mycompany.telegramsimplebot.config.BotConfig;
+import com.mycompany.telegramsimplebot.entity.User;
+import com.mycompany.telegramsimplebot.repository.UserRepository;
+import com.mycompany.telegramsimplebot.service.UserService;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Chat;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-
 
 @Slf4j
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
 
     final BotConfig config;
-    
-    final static String HELP_TEXT = "This bot is created to demonstrate Spring capabilities.\n\n" + 
-            "You can execute commands from the main menu on the left or by " + 
-            "Type /start to see a welcome message \n\n" + 
-            "Type /mydata to see data stored about yourself\n\n" + 
-            "Type /help to see this message again\n\n";
+
+    @Autowired
+    UserService userService;
+
+    final static String HELP_TEXT = """
+                                    This bot is created to demonstrate Spring capabilities.
+                                    
+                                    You can execute commands from the main menu on the left or by Type /start to see a welcome message 
+                                    
+                                    Type /mydata to see data stored about yourself
+                                    
+                                    Type /help to see this message again
+                                    
+                                    """;
 
     public TelegramBot(BotConfig config) {
         this.config = config;
@@ -34,7 +48,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         listOfCommands.add(new BotCommand("/deletedata", "delete your data"));
         listOfCommands.add(new BotCommand("/help", "info how to use this bot"));
         listOfCommands.add(new BotCommand("/settings", "set your preferences"));
-                
+
         try {
             this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
         } catch (TelegramApiException ex) {
@@ -59,14 +73,14 @@ public class TelegramBot extends TelegramLongPollingBot {
             long chatId = update.getMessage().getChatId();
 
             switch (messageText) {
-                case "/start":
-                    startCommandReceived(chatId, update.getMessage().getChat().getFirstName());                    
-                    break;
-                    case "/help":
+                case "/start" -> {
+                    registerUser(update.getMessage());
+                    startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
+                }
+                case "/help" ->
                     sendMessage(chatId, HELP_TEXT);
-                    break;
-                default:
-                    sendMessage(chatId, "Sorry, can't understand your command");                    
+                default ->
+                    sendMessage(chatId, "Sorry, can't understand your command");
             }
         }
     }
@@ -86,6 +100,23 @@ public class TelegramBot extends TelegramLongPollingBot {
             execute(message);
         } catch (TelegramApiException ex) {
             log.error("Error occurred: " + ex.getMessage());
+        }
+    }
+
+    private void registerUser(Message message) {
+
+        if (!userService.existsById(message.getChatId())) {
+            Long chatId = message.getChatId();
+            Chat chat = message.getChat();
+            User user = new User();
+            user.setChatId(chatId);
+            user.setFirstName(chat.getFirstName());
+            user.setLastName(chat.getLastName());
+            user.setUserName(chat.getUserName());
+            user.setRegisteredAt(new Timestamp(System.currentTimeMillis()));
+
+            userService.save(user);
+            log.info("User saved: " + user);
         }
     }
 
