@@ -2,8 +2,8 @@ package com.mycompany.telegramsimplebot.bot;
 
 import com.mycompany.telegramsimplebot.config.BotConfig;
 import com.mycompany.telegramsimplebot.entity.User;
-import com.mycompany.telegramsimplebot.repository.UserRepository;
 import com.mycompany.telegramsimplebot.service.UserService;
+import com.vdurmont.emoji.EmojiParser;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -86,8 +86,8 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void startCommandReceived(long chatId, String firstName) {
-
-        String answer = "Hi, " + firstName + ", nice to meet you!";
+        // String answer = "Hi, " + firstName + ", nice to meet you!";
+        String answer = EmojiParser.parseToUnicode( "Hi, " + firstName + ", nice to meet you! " + " :blush:");
         log.info("Replied to user " + firstName);
         sendMessage(chatId, answer);
     }
