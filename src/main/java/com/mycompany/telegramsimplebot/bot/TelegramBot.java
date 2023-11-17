@@ -18,6 +18,8 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Slf4j
@@ -96,6 +98,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
         message.setText(answer);
+        
+        setMarkup(message);
+        
         try {
             execute(message);
         } catch (TelegramApiException ex) {
@@ -104,7 +109,6 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void registerUser(Message message) {
-
         if (!userService.existsById(message.getChatId())) {
             Long chatId = message.getChatId();
             Chat chat = message.getChat();
@@ -118,6 +122,26 @@ public class TelegramBot extends TelegramLongPollingBot {
             userService.save(user);
             log.info("User saved: " + user);
         }
+    }
+    
+    private void setMarkup(SendMessage msg){
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        
+        List<KeyboardRow> keyboardRows = new ArrayList<>();
+        
+        KeyboardRow row = new KeyboardRow();        
+        row.add("weather");
+        row.add("get random joke");        
+        keyboardRows.add(row);
+        
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add("register");
+        row1.add("check my data");
+        row1.add("delete my data");
+        keyboardRows.add(row1);
+        
+        keyboardMarkup.setKeyboard(keyboardRows);
+        msg.setReplyMarkup(keyboardMarkup);
     }
 
 }
