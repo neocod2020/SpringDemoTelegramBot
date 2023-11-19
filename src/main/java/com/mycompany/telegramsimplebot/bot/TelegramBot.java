@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -43,7 +44,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                                     Type /help to see this message again
                                     
                                     """;
-    private  String REGISTER_QUESTION = "Do you really want to register?";
+    private String REGISTER_QUESTION = "Do you really want to register?";
 
     public TelegramBot(BotConfig config) {
         this.config = config;
@@ -91,6 +92,26 @@ public class TelegramBot extends TelegramLongPollingBot {
                 default ->
                     sendMessage(chatId, "Sorry, can't understand your command");
             }
+        } else if (update.hasCallbackQuery()) {
+            long messageId = update.getCallbackQuery().getMessage().getMessageId();
+            long chatId = update.getCallbackQuery().getMessage().getChatId();
+            String callbackData = update.getCallbackQuery().getData();
+            EditMessageText message = new EditMessageText();
+
+            if (callbackData.equals("YES_BUTTON")) {
+                String text = "You press YES button";
+                message = editTextOfMessage(chatId, messageId, text);
+                                
+            } else if (callbackData.equals("NO_BUTTON")) {
+                String text = "You press NO button";
+                message = editTextOfMessage(chatId, messageId, text);
+            }
+            try {
+            execute(message);
+        } catch (TelegramApiException ex) {
+            log.error("Error occurred: " + ex.getMessage());
+        }
+            
         }
     }
 
@@ -152,42 +173,46 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void register(long chatId) {
-        log.info("register");
-
-        SendMessage registerMessage = new SendMessage(String.valueOf(chatId), REGISTER_QUESTION);
-//        message.setChatId(String.valueOf(chatId));        
-//        message.setText("Do you really want to register?");
-        log.info("create msg with id " + registerMessage.getChatId() + " and text " + registerMessage.getText());
+        
+        SendMessage registerMessage = new SendMessage();
+        registerMessage.setChatId(String.valueOf(chatId));        
+        registerMessage.setText(REGISTER_QUESTION);
         
         // create two buttons - YES and NO in line
         InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
         List<InlineKeyboardButton> rowInLine = new ArrayList<>();
-        
+
         var yesButton = new InlineKeyboardButton();
         yesButton.setText("Yes");
         yesButton.setCallbackData("YES_BUTTON");
-        
+
         var noButton = new InlineKeyboardButton();
         noButton.setText("No");
         noButton.setCallbackData("NO_BUTTON");
-        
+
         rowInLine.add(yesButton);
         rowInLine.add(noButton);
-        
-        rowsInLine.add(rowInLine);
-        
-        markupInLine.setKeyboard(rowsInLine);
-        
-        registerMessage.setReplyMarkup(markupInLine);
-        
-        log.info("create msg with markup line and text " + registerMessage.getText());
 
+        rowsInLine.add(rowInLine);
+
+        markupInLine.setKeyboard(rowsInLine);
+
+        registerMessage.setReplyMarkup(markupInLine);
+       
         try {
             execute(registerMessage);
         } catch (TelegramApiException ex) {
             log.error("Error occurred: " + ex.getMessage());
         }
+    }
+
+    private EditMessageText editTextOfMessage(long chatId, long messageId, String text) {
+        EditMessageText message = new EditMessageText();
+        message.setChatId(String.valueOf(chatId));
+        message.setMessageId((int) messageId);
+        message.setText(text);
+        return message;
     }
 
 }
