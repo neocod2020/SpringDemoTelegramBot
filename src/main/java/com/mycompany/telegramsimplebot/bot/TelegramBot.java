@@ -79,8 +79,8 @@ public class TelegramBot extends TelegramLongPollingBot {
             String messageText = update.getMessage().getText();
             long chatId = update.getMessage().getChatId();
             
-            // organization of sending to all the users the text after command /send and space after it
-            if(messageText.contains("/send")){
+            // organization of sending to all the users the text after command /send and a space after it
+            if(messageText.contains("/send") && config.getOwnerId() == chatId){
                 String textToSend = EmojiParser.parseToUnicode(messageText.substring(messageText.indexOf(" ")));
                 Iterable<User> users = userService.findAll();
                 for(User user :users){
@@ -98,6 +98,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "/register" -> {
                     register(update.getMessage().getChatId());
                 }
+                
                 default ->
                     sendMessage(chatId, "Sorry, can't understand your command");
             }
