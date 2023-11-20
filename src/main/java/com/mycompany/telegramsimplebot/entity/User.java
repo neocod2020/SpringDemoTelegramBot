@@ -16,12 +16,11 @@ import java.sql.Timestamp;
 import lombok.Data;
 
 @Entity
-@Table(name = "userDataTable")
+@Table(name = "userstable")
 @Data
 public class User {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id  
     @Column(name = "chatId")
     private Long chatId;
 
@@ -36,5 +35,4 @@ public class User {
 
     @Column(name = "registeredAt")
     private Timestamp registeredAt; // stored time of initial registration
-
 }

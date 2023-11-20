@@ -78,6 +78,15 @@ public class TelegramBot extends TelegramLongPollingBot {
         if (update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
             long chatId = update.getMessage().getChatId();
+            
+            // organization of sending to all the users the text after command /send and space after it
+            if(messageText.contains("/send")){
+                String textToSend = EmojiParser.parseToUnicode(messageText.substring(messageText.indexOf(" ")));
+                Iterable<User> users = userService.findAll();
+                for(User user :users){
+                    sendMessage(user.getChatId(), textToSend);
+                }
+            }
 
             switch (messageText) {
                 case "/start" -> {
@@ -137,7 +146,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void registerUser(Message message) {
-        if (!userService.existsById(message.getChatId())) {
+        if (userService.findById(message.getChatId()).isEmpty()) {
             Long chatId = message.getChatId();
             Chat chat = message.getChat();
             User user = new User();
