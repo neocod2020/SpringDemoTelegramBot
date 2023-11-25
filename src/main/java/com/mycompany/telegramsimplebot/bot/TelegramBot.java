@@ -1,7 +1,9 @@
 package com.mycompany.telegramsimplebot.bot;
 
 import com.mycompany.telegramsimplebot.config.BotConfig;
+import com.mycompany.telegramsimplebot.entity.Ads;
 import com.mycompany.telegramsimplebot.entity.User;
+import com.mycompany.telegramsimplebot.service.AdsService;
 import com.mycompany.telegramsimplebot.service.UserService;
 import com.vdurmont.emoji.EmojiParser;
 import java.sql.Timestamp;
@@ -9,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
@@ -32,7 +35,10 @@ public class TelegramBot extends TelegramLongPollingBot {
     final BotConfig config;
 
     @Autowired
-    UserService userService;
+    private UserService userService;
+    
+    @Autowired
+    private AdsService adsService;
 
     final static String HELP_TEXT = """
                                     This bot is created to demonstrate Spring capabilities.
@@ -87,9 +93,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             if (messageText.contains("/send") && config.getOwnerId() == chatId) {
                 String textToSend = EmojiParser.parseToUnicode(messageText.substring(messageText.indexOf(" ")));
                 Iterable<User> users = userService.findAll();
-                for (User user : users) {
-                    prepareAndSendMessage(user.getChatId(), textToSend);
-                }
+                prepareAndSendMessageToAllUsers(textToSend);
             } else {
                 switch (messageText) {
                     case "/start" -> {
@@ -134,7 +138,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
         message.setText(answer);
-
+        
         setMarkup(message);
 
         executeMessage(message);
@@ -224,6 +228,20 @@ public class TelegramBot extends TelegramLongPollingBot {
             execute(message);
         } catch (TelegramApiException ex) {
             log.error(ERROR_MSG + ex.getMessage());
+        }
+    }
+    private void prepareAndSendMessageToAllUsers(String txt){
+        var users = userService.findAll();        
+        for (User user : users) {
+                    prepareAndSendMessage(user.getChatId(), txt);
+                }
+    }
+    
+    @Scheduled(cron = "${cron.scheduler}") //from application.properties, get started every minute
+    private void sendAds(){        
+        var ads = adsService.findAll();
+        for(Ads ad : ads){            
+            prepareAndSendMessageToAllUsers(ad.getAd());
         }
     }
 }
